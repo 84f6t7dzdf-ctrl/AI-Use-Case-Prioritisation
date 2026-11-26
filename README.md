@@ -38,6 +38,11 @@ Quadrants and their actions:
 | Fill-in | low | high | Do when spare capacity allows |
 | Deprioritise | low | low | Park and revisit next review |
 
+A sidebar slider sets the value weight from 0.3 to 0.8 (feasibility gets
+1 minus it). The ranking, chart and working all use the chosen weights, and
+a note lists any case that enters or leaves the top 3 compared with the
+default 0.6 / 0.4.
+
 A scatter chart plots every case by feasibility (x) and value (y), with
 dashed lines at the quadrant cutoff and the quadrant names in the corners.
 Gated cases are red diamonds; hover a point to see its scores.

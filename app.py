@@ -10,7 +10,7 @@ import streamlit as st
 
 import assumptions as A
 from charts import quadrant_chart
-from logic import gated_cases, rank, top_cases
+from logic import gated_cases, rank, top_cases, top_changes
 
 HERE = Path(__file__).resolve().parent
 DEFAULT_CSV = HERE / "use_cases.csv"
@@ -22,10 +22,22 @@ st.title("Which AI use cases should we do first?")
 with st.sidebar:
     st.header("Data")
     upload = st.file_uploader("Load a CSV (same columns as use_cases.csv)", type="csv")
+    st.header("Weights")
+    value_weight = st.slider(
+        "Value weight",
+        min_value=A.VALUE_WEIGHT_MIN,
+        max_value=A.VALUE_WEIGHT_MAX,
+        value=A.VALUE_WEIGHT,
+        step=0.05,
+        help="How much value counts in the priority score. Feasibility gets the rest.",
+    )
+    feasibility_weight = round(1 - value_weight, 2)
+    st.caption(
+        f"Feasibility weight: **{feasibility_weight:g}** (1 minus value weight). "
+        f"Default is {A.VALUE_WEIGHT:g} / {A.FEASIBILITY_WEIGHT:g}."
+    )
     st.header("Assumptions (estimates)")
     st.markdown(
-        f"- Value weight: **{A.VALUE_WEIGHT}**\n"
-        f"- Feasibility weight: **{A.FEASIBILITY_WEIGHT}**\n"
         f"- Quadrant cutoff: **{A.QUADRANT_CUTOFF}**\n"
         f"- Risk gate: risk **>= {A.RISK_GATE}** means govern first\n"
         f"- Capacity: **{A.CAPACITY}** cases at once"
@@ -71,7 +83,8 @@ if len(complete) < len(edited):
     st.info(f"{len(edited) - len(complete)} row(s) with missing scores are left out of the ranking.")
 
 try:
-    ranked = rank(complete.reset_index(drop=True))
+    ranked = rank(complete.reset_index(drop=True), value_weight)
+    default_ranked = rank(complete.reset_index(drop=True))
 except ValueError as e:
     st.error(f"Could not score the table: {e}")
     st.stop()
@@ -83,6 +96,24 @@ if ranked.empty:
 # Top cases to start with.
 st.subheader(f"Start with these {A.CAPACITY}")
 top = top_cases(ranked, A.CAPACITY)
+st.caption(f"Using value weight {value_weight:g} and feasibility weight {feasibility_weight:g}.")
+if abs(value_weight - A.VALUE_WEIGHT) > 1e-9:
+    entered, left = top_changes(top_cases(default_ranked, A.CAPACITY), top)
+    if entered or left:
+        parts = []
+        if entered:
+            parts.append(f"**Enters the top {A.CAPACITY}:** {', '.join(entered)}")
+        if left:
+            parts.append(f"**Leaves the top {A.CAPACITY}:** {', '.join(left)}")
+        st.warning(
+            f"Compared with the default weights ({A.VALUE_WEIGHT:g} / {A.FEASIBILITY_WEIGHT:g}):  \n"
+            + "  \n".join(parts)
+        )
+    else:
+        st.info(
+            f"Same top {A.CAPACITY} as with the default weights "
+            f"({A.VALUE_WEIGHT:g} / {A.FEASIBILITY_WEIGHT:g}), though the order may differ."
+        )
 if top.empty:
     st.warning("Every case is gated on risk. Govern them before starting any.")
 else:
