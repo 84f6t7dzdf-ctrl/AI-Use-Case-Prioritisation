@@ -10,7 +10,7 @@ import streamlit as st
 
 import assumptions as A
 from charts import quadrant_chart
-from logic import criterion_help, gated_cases, rank, settings_changed, top_cases, top_changes
+from logic import apply_adjustments, criterion_help, describe_adjustments, gated_cases, rank, settings_changed, top_cases, top_changes
 
 HERE = Path(__file__).resolve().parent
 DEFAULT_CSV = HERE / "use_cases.csv"
@@ -26,14 +26,24 @@ DEFAULTS = {
 }
 for _key, _value in DEFAULTS.items():
     st.session_state.setdefault(_key, _value)
+st.session_state.setdefault("scenario", A.DEFAULT_SCENARIO)
+
+
+def load_scenario():
+    """Copy the chosen scenario's assumptions into the controls."""
+    scenario = A.SCENARIOS[st.session_state["scenario"]]
+    for key in DEFAULTS:
+        st.session_state[key] = scenario[key]
 
 
 def reset_assumptions():
+    st.session_state["scenario"] = A.DEFAULT_SCENARIO
     for key, value in DEFAULTS.items():
         st.session_state[key] = value
 
 
 SETTING_NAMES = {
+    "scores": "scenario score adjustments",
     "value_weight": "value weight",
     "cutoff": "quadrant cutoff",
     "risk_gate": "risk gate",
@@ -44,6 +54,16 @@ SETTING_NAMES = {
 with st.sidebar:
     st.header("Data")
     upload = st.file_uploader("Load a CSV (same columns as use_cases.csv)", type="csv")
+    st.header("Scenario")
+    scenario_name = st.selectbox(
+        "Example scenario (estimate)",
+        list(A.SCENARIOS),
+        key="scenario",
+        on_change=load_scenario,
+        help="Loads a set of assumptions below. You can still adjust them afterwards.",
+    )
+    scenario = A.SCENARIOS[scenario_name]
+    st.caption(scenario["description"])
     st.header("Assumptions")
     st.caption("Every value here is an estimate. Change them to test the ranking. "
                "Defaults come from assumptions.py.")
@@ -124,8 +144,14 @@ complete = edited.dropna(subset=["name"] + A.SCORE_COLUMNS)
 if len(complete) < len(edited):
     st.info(f"{len(edited) - len(complete)} row(s) with missing scores are left out of the ranking.")
 
+adjustments = scenario["score_adjustments"]
+scored_input = apply_adjustments(complete.reset_index(drop=True), adjustments)
+if adjustments:
+    st.info(f"**{scenario_name}** scenario: {describe_adjustments(adjustments)}. "
+            "The table shows your scores; the ranking below uses the adjusted ones.")
+
 try:
-    ranked = rank(complete.reset_index(drop=True), value_weight, cutoff, risk_gate)
+    ranked = rank(scored_input, value_weight, cutoff, risk_gate)
     default_ranked = rank(complete.reset_index(drop=True))
 except ValueError as e:
     st.error(f"Could not score the table: {e}")
@@ -139,10 +165,12 @@ if ranked.empty:
 st.subheader(f"Start with these {capacity}")
 top = top_cases(ranked, capacity)
 st.caption(
-    f"Using value weight {value_weight:g}, feasibility weight {feasibility_weight:g}, "
+    f"Scenario: {scenario_name}. Using value weight {value_weight:g}, feasibility weight {feasibility_weight:g}, "
     f"quadrant cutoff {cutoff:.2f}, risk gate {risk_gate} and capacity {capacity}."
 )
 changed = settings_changed(value_weight, cutoff, risk_gate, capacity, DEFAULTS)
+if adjustments:
+    changed = changed + ["scores"]
 if changed:
     entered, left = top_changes(top_cases(default_ranked, A.CAPACITY), top)
     changed_text = ", ".join(SETTING_NAMES[k] for k in changed)
@@ -153,11 +181,11 @@ if changed:
         if left:
             parts.append(f"**Leaves the top:** {', '.join(left)}")
         st.warning(
-            f"Compared with the default top {A.CAPACITY} (you changed: {changed_text}):  \n"
+            f"Compared with the default top {A.CAPACITY} (changed: {changed_text}):  \n"
             + "  \n".join(parts)
         )
     else:
-        st.info(f"Same cases as the default top {A.CAPACITY} (you changed: {changed_text}), "
+        st.info(f"Same cases as the default top {A.CAPACITY} (changed: {changed_text}), "
                 "though the order may differ.")
 if top.empty:
     st.warning("Every case is gated on risk. Govern them before starting any.")

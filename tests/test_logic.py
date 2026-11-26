@@ -153,3 +153,54 @@ def test_criterion_help_lists_1_3_5_meanings():
         assert CRITERIA[key]["label"] in text
         for level in (1, 3, 5):
             assert f"**{level}:** {CRITERIA[key][level]}" in text
+
+
+def test_scenarios_are_complete_and_in_range():
+    import assumptions as A
+    assert A.DEFAULT_SCENARIO in A.SCENARIOS
+    assert {"Regulated bank", "Fast-growing retailer", "Company with poor data"} <= set(A.SCENARIOS)
+    for name, sc in A.SCENARIOS.items():
+        assert sc["description"]
+        assert A.VALUE_WEIGHT_MIN <= sc["value_weight"] <= A.VALUE_WEIGHT_MAX
+        assert A.QUADRANT_CUTOFF_MIN <= sc["cutoff"] <= A.QUADRANT_CUTOFF_MAX
+        assert 1 <= sc["risk_gate"] <= 5
+        assert 1 <= sc["capacity"] <= A.CAPACITY_MAX
+        assert set(sc["score_adjustments"]) <= set(A.SCORE_COLUMNS)
+
+
+def test_apply_adjustments_clips_to_scale():
+    from logic import apply_adjustments, describe_adjustments
+    df = pd.DataFrame([case(data_readiness=2), case(data_readiness=5)])
+    out = apply_adjustments(df, {"data_readiness": -2})
+    assert list(out["data_readiness"]) == [1, 3]
+    assert list(df["data_readiness"]) == [2, 5]  # input unchanged
+    assert describe_adjustments({"data_readiness": -2}).startswith("Data readiness -2")
+    assert describe_adjustments({}) == ""
+
+
+def test_scenarios_change_the_top_cases():
+    import assumptions as A
+    from logic import apply_adjustments, top_cases, top_changes
+
+    df = pd.read_csv(Path(__file__).resolve().parent.parent / "use_cases.csv")
+    default_top = top_cases(rank(df), A.CAPACITY)
+
+    def top_for(name):
+        sc = A.SCENARIOS[name]
+        ranked = rank(apply_adjustments(df, sc["score_adjustments"]),
+                      sc["value_weight"], sc["cutoff"], sc["risk_gate"])
+        return ranked, top_cases(ranked, sc["capacity"])
+
+    # Bank: risk gate 3 holds back the chatbot, and capacity drops to 2.
+    ranked, top = top_for("Regulated bank")
+    assert top_changes(default_top, top) == ([], ["Customer service chatbot"])
+    assert "Customer service chatbot" in set(ranked.loc[ranked["gated"], "name"])
+
+    # Retailer: capacity 4 brings Contract review in.
+    _, top = top_for("Fast-growing retailer")
+    assert top_changes(default_top, top) == (["Contract review"], [])
+
+    # Poor data: Invoice matching loses feasibility, so Demand forecasting leads.
+    ranked, _ = top_for("Company with poor data")
+    assert ranked.iloc[0]["name"] == "Demand forecasting"
+    assert ranked.loc[ranked["name"] == "Invoice matching", "data_readiness"].item() == 3

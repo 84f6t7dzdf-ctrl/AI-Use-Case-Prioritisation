@@ -100,3 +100,54 @@ ACTIONS = {
 }
 
 GOVERN_FIRST = "Govern first"
+
+# ESTIMATE: example scenarios. Each one loads a set of assumption values into
+# the app, and can shift criterion scores for every case (clipped to 1 to 5)
+# to reflect the organisation. They are illustrations, not benchmarks.
+DEFAULT_SCENARIO = "Default"
+SCENARIOS = {
+    DEFAULT_SCENARIO: {
+        "description": "The defaults from assumptions.py, with scores as entered.",
+        "value_weight": VALUE_WEIGHT,
+        "cutoff": QUADRANT_CUTOFF,
+        "risk_gate": RISK_GATE,
+        "capacity": CAPACITY,
+        "score_adjustments": {},
+    },
+    "Regulated bank": {
+        "description": (
+            "Regulators and model risk teams review anything that touches "
+            "customers, so the risk gate is stricter (3), feasibility counts "
+            "for more (value weight 0.5) and change capacity is tighter (2)."
+        ),
+        "value_weight": 0.5,
+        "cutoff": QUADRANT_CUTOFF,
+        "risk_gate": 3,
+        "capacity": 2,
+        "score_adjustments": {},
+    },
+    "Fast-growing retailer": {
+        "description": (
+            "Growth matters most and the business accepts more risk, so value "
+            "counts for more (value weight 0.7), only risk 5 is gated, and "
+            "there is budget for 4 cases at once."
+        ),
+        "value_weight": 0.7,
+        "cutoff": QUADRANT_CUTOFF,
+        "risk_gate": 5,
+        "capacity": 4,
+        "score_adjustments": {},
+    },
+    "Company with poor data": {
+        "description": (
+            "Data is scattered and poorly governed, so every case's data "
+            "readiness drops by 2 (minimum 1). Other assumptions stay at "
+            "their defaults."
+        ),
+        "value_weight": VALUE_WEIGHT,
+        "cutoff": QUADRANT_CUTOFF,
+        "risk_gate": RISK_GATE,
+        "capacity": CAPACITY,
+        "score_adjustments": {"data_readiness": -2},
+    },
+}
