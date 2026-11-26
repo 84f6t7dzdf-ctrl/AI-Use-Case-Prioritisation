@@ -10,7 +10,7 @@ import streamlit as st
 
 import assumptions as A
 from charts import quadrant_chart
-from logic import gated_cases, rank, top_cases, top_changes
+from logic import gated_cases, rank, settings_changed, top_cases, top_changes
 
 HERE = Path(__file__).resolve().parent
 DEFAULT_CSV = HERE / "use_cases.csv"
@@ -18,31 +18,72 @@ DEFAULT_CSV = HERE / "use_cases.csv"
 st.set_page_config(page_title="AI use case prioritisation", layout="wide")
 st.title("Which AI use cases should we do first?")
 
+DEFAULTS = {
+    "value_weight": A.VALUE_WEIGHT,
+    "cutoff": A.QUADRANT_CUTOFF,
+    "risk_gate": A.RISK_GATE,
+    "capacity": A.CAPACITY,
+}
+for _key, _value in DEFAULTS.items():
+    st.session_state.setdefault(_key, _value)
+
+
+def reset_assumptions():
+    for key, value in DEFAULTS.items():
+        st.session_state[key] = value
+
+
+SETTING_NAMES = {
+    "value_weight": "value weight",
+    "cutoff": "quadrant cutoff",
+    "risk_gate": "risk gate",
+    "capacity": "capacity",
+}
+
 # Sidebar: data source and the assumptions behind the scores.
 with st.sidebar:
     st.header("Data")
     upload = st.file_uploader("Load a CSV (same columns as use_cases.csv)", type="csv")
-    st.header("Weights")
+    st.header("Assumptions")
+    st.caption("Every value here is an estimate. Change them to test the ranking. "
+               "Defaults come from assumptions.py.")
+    st.button("Reset to defaults", on_click=reset_assumptions, width="stretch")
     value_weight = st.slider(
-        "Value weight",
+        "Value weight (estimate)",
         min_value=A.VALUE_WEIGHT_MIN,
         max_value=A.VALUE_WEIGHT_MAX,
-        value=A.VALUE_WEIGHT,
         step=0.05,
+        key="value_weight",
         help="How much value counts in the priority score. Feasibility gets the rest.",
     )
     feasibility_weight = round(1 - value_weight, 2)
-    st.caption(
-        f"Feasibility weight: **{feasibility_weight:g}** (1 minus value weight). "
-        f"Default is {A.VALUE_WEIGHT:g} / {A.FEASIBILITY_WEIGHT:g}."
+    st.caption(f"Feasibility weight: **{feasibility_weight:g}** (1 minus value weight). "
+               f"Default {A.VALUE_WEIGHT:g} / {A.FEASIBILITY_WEIGHT:g}.")
+    cutoff = st.slider(
+        "Quadrant cutoff (estimate)",
+        min_value=A.QUADRANT_CUTOFF_MIN,
+        max_value=A.QUADRANT_CUTOFF_MAX,
+        step=0.25,
+        key="cutoff",
+        help="Value or feasibility at or above this counts as high. "
+             f"Default {A.QUADRANT_CUTOFF:g}.",
     )
-    st.header("Assumptions (estimates)")
-    st.markdown(
-        f"- Quadrant cutoff: **{A.QUADRANT_CUTOFF}**\n"
-        f"- Risk gate: risk **>= {A.RISK_GATE}** means govern first\n"
-        f"- Capacity: **{A.CAPACITY}** cases at once"
+    risk_gate = st.slider(
+        "Risk gate (estimate)",
+        min_value=1,
+        max_value=5,
+        step=1,
+        key="risk_gate",
+        help=f"Cases with risk at or above this must be governed first. Default {A.RISK_GATE}.",
     )
-    st.caption("All numbers are estimates. Change them in assumptions.py.")
+    capacity = st.number_input(
+        "Capacity (estimate)",
+        min_value=1,
+        max_value=A.CAPACITY_MAX,
+        step=1,
+        key="capacity",
+        help=f"How many use cases can be delivered at once. Default {A.CAPACITY}.",
+    )
     with st.expander("What the scores mean"):
         for key, c in A.CRITERIA.items():
             st.markdown(f"**{c['label']}** ({c['group']})")
@@ -83,7 +124,7 @@ if len(complete) < len(edited):
     st.info(f"{len(edited) - len(complete)} row(s) with missing scores are left out of the ranking.")
 
 try:
-    ranked = rank(complete.reset_index(drop=True), value_weight)
+    ranked = rank(complete.reset_index(drop=True), value_weight, cutoff, risk_gate)
     default_ranked = rank(complete.reset_index(drop=True))
 except ValueError as e:
     st.error(f"Could not score the table: {e}")
@@ -94,26 +135,29 @@ if ranked.empty:
     st.stop()
 
 # Top cases to start with.
-st.subheader(f"Start with these {A.CAPACITY}")
-top = top_cases(ranked, A.CAPACITY)
-st.caption(f"Using value weight {value_weight:g} and feasibility weight {feasibility_weight:g}.")
-if abs(value_weight - A.VALUE_WEIGHT) > 1e-9:
+st.subheader(f"Start with these {capacity}")
+top = top_cases(ranked, capacity)
+st.caption(
+    f"Using value weight {value_weight:g}, feasibility weight {feasibility_weight:g}, "
+    f"quadrant cutoff {cutoff:.2f}, risk gate {risk_gate} and capacity {capacity}."
+)
+changed = settings_changed(value_weight, cutoff, risk_gate, capacity, DEFAULTS)
+if changed:
     entered, left = top_changes(top_cases(default_ranked, A.CAPACITY), top)
+    changed_text = ", ".join(SETTING_NAMES[k] for k in changed)
     if entered or left:
         parts = []
         if entered:
-            parts.append(f"**Enters the top {A.CAPACITY}:** {', '.join(entered)}")
+            parts.append(f"**Enters the top:** {', '.join(entered)}")
         if left:
-            parts.append(f"**Leaves the top {A.CAPACITY}:** {', '.join(left)}")
+            parts.append(f"**Leaves the top:** {', '.join(left)}")
         st.warning(
-            f"Compared with the default weights ({A.VALUE_WEIGHT:g} / {A.FEASIBILITY_WEIGHT:g}):  \n"
+            f"Compared with the default top {A.CAPACITY} (you changed: {changed_text}):  \n"
             + "  \n".join(parts)
         )
     else:
-        st.info(
-            f"Same top {A.CAPACITY} as with the default weights "
-            f"({A.VALUE_WEIGHT:g} / {A.FEASIBILITY_WEIGHT:g}), though the order may differ."
-        )
+        st.info(f"Same cases as the default top {A.CAPACITY} (you changed: {changed_text}), "
+                "though the order may differ.")
 if top.empty:
     st.warning("Every case is gated on risk. Govern them before starting any.")
 else:
@@ -127,11 +171,11 @@ else:
 # Quadrant chart.
 st.subheader("Value against feasibility")
 st.caption(
-    f"Dashed lines mark the quadrant cutoff of {A.QUADRANT_CUTOFF}. "
-    f"Red diamonds are gated (risk {A.RISK_GATE} or higher) and need governance first. "
+    f"Dashed lines mark the quadrant cutoff of {cutoff:.2f}. "
+    f"Red diamonds are gated (risk {risk_gate} or higher) and need governance first. "
     "Hover a point for its scores."
 )
-st.altair_chart(quadrant_chart(ranked), width="stretch")
+st.altair_chart(quadrant_chart(ranked, cutoff), width="stretch")
 
 # Full ranking. Kept narrow enough to fit a laptop screen; the working is
 # shown in full below, one step per line, instead of in a wide column.
@@ -163,10 +207,10 @@ for _, row in ranked.iterrows():
 st.subheader("Govern first")
 gated = gated_cases(ranked)
 if gated.empty:
-    st.success(f"No case has risk at or above {A.RISK_GATE}.")
+    st.success(f"No case has risk at or above {risk_gate}.")
 else:
     st.caption(
-        f"These cases have risk {A.RISK_GATE} or higher. They need legal, data protection "
+        f"These cases have risk {risk_gate} or higher. They need legal, data protection "
         "and ethics review before delivery starts, whatever their priority score."
     )
     st.dataframe(

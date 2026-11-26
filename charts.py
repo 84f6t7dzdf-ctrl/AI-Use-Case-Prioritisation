@@ -17,7 +17,7 @@ GATED_LABEL = "Gated: govern first"
 UNGATED_LABEL = "Not gated"
 
 
-def chart_points(ranked):
+def chart_points(ranked, cutoff=QUADRANT_CUTOFF):
     """One row per point on the chart.
 
     Cases with exactly the same feasibility, value and gate status share a
@@ -36,7 +36,7 @@ def chart_points(ranked):
         .reset_index()
     )
     grouped["align"] = [
-        label_align(x, label) for x, label in zip(grouped["feasibility"], grouped["label"])
+        label_align(x, label, cutoff) for x, label in zip(grouped["feasibility"], grouped["label"])
     ]
     return grouped
 
@@ -61,9 +61,9 @@ def label_align(x, label, cutoff=QUADRANT_CUTOFF):
     return "left" if x + width <= AXIS_MAX else "right"
 
 
-def quadrant_chart(ranked, height=460):
+def quadrant_chart(ranked, cutoff=QUADRANT_CUTOFF, height=460):
     """Scatter of feasibility (x) against value (y) with quadrant cutoffs."""
-    points = chart_points(ranked)
+    points = chart_points(ranked, cutoff)
     scale = alt.Scale(domain=[AXIS_MIN, AXIS_MAX], nice=False)
     x = alt.X("feasibility:Q", title="Feasibility", scale=scale,
               axis=alt.Axis(values=[1, 2, 3, 4, 5], grid=True, gridColor="#e7e7e7"))
@@ -94,7 +94,7 @@ def quadrant_chart(ranked, height=460):
         alt.Tooltip("status:N", title="Risk gate"),
     ]
 
-    cutoff = pd.DataFrame({"c": [QUADRANT_CUTOFF]})
+    cutoff = pd.DataFrame({"c": [cutoff]})
     vline = alt.Chart(cutoff).mark_rule(color=CUTOFF_COLOUR, strokeDash=[4, 4]).encode(x=alt.X("c:Q", scale=scale))
     hline = alt.Chart(cutoff).mark_rule(color=CUTOFF_COLOUR, strokeDash=[4, 4]).encode(y=alt.Y("c:Q", scale=scale))
 

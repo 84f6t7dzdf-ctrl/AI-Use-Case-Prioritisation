@@ -81,6 +81,13 @@ RISK_GATE = 4
 VALUE_WEIGHT_MIN = 0.3
 VALUE_WEIGHT_MAX = 0.8
 
+# ESTIMATE: range for the quadrant cutoff control in the app.
+QUADRANT_CUTOFF_MIN = 2.0
+QUADRANT_CUTOFF_MAX = 4.0
+
+# ESTIMATE: largest capacity the app lets you choose.
+CAPACITY_MAX = 10
+
 # ESTIMATE: number of use cases the organisation can deliver at once.
 CAPACITY = 3
 

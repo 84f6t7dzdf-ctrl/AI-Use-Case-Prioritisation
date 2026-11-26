@@ -110,3 +110,36 @@ def test_top_changes_with_sample_data():
     assert left == ["Demand forecasting", "Customer service chatbot"]
     # Default weight gives no change.
     assert top_changes(default_top, top_cases(rank(df, value_weight=0.6), 3)) == ([], [])
+
+
+def test_custom_cutoff_changes_quadrant():
+    # value = 3.5, feasibility = 3.0
+    c = case(benefit=4, strategic_fit=3)
+    assert score(c)["quadrant"] == "Quick win"
+    s = score(c, cutoff=3.25)
+    assert s["quadrant"] == "Strategic bet"
+    assert "feasibility 3.00 < 3.25" in s["working"]
+
+
+def test_custom_risk_gate():
+    c = case(risk=3)
+    assert score(c)["gated"] is False
+    s = score(c, risk_gate=3)
+    assert s["gated"] is True
+    assert "risk 3 >= 3 -> gated" in s["working"]
+
+
+def test_rank_with_custom_settings_and_change_note():
+    from logic import settings_changed, top_cases, top_changes
+    df = pd.read_csv(Path(__file__).resolve().parent.parent / "use_cases.csv")
+    default_top = top_cases(rank(df), 3)
+    # Gate at risk 3 holds back the chatbot (risk 3), so Contract review (also
+    # risk 3) is gated too and both leave; capacity 4 adds two more.
+    ranked = rank(df, risk_gate=3)
+    assert set(ranked.loc[ranked["gated"], "name"]) >= {"Customer service chatbot", "Contract review"}
+    entered, left = top_changes(default_top, top_cases(ranked, 4))
+    assert left == ["Customer service chatbot"]
+    assert "Customer service chatbot" not in entered
+    defaults = {"value_weight": 0.6, "cutoff": 3.0, "risk_gate": 4, "capacity": 3}
+    assert settings_changed(0.6, 3.0, 4, 3, defaults) == []
+    assert settings_changed(0.6, 3.0, 3, 4, defaults) == ["risk_gate", "capacity"]
