@@ -1,0 +1,13 @@
+name,description,benefit,strategic_fit,data_readiness,tech_maturity,clear_owner,risk
+Invoice matching,Match supplier invoices to purchase orders and goods receipts in finance,4,3,5,5,5,1
+Customer service chatbot,Answer common customer questions on the website and hand off to agents,4,4,3,4,3,3
+Contract review,Flag non-standard clauses in supplier and customer contracts for legal,4,4,3,3,4,3
+Sales email drafting,Draft first-pass prospecting and follow-up emails for the sales team,3,2,4,5,4,2
+CV screening,Shortlist job applicants by matching CVs to role requirements,4,3,4,4,4,5
+Demand forecasting,Forecast product demand by region to plan stock and production,5,5,2,3,3,2
+Meeting notes summarisation,Summarise internal meetings and list actions,2,2,4,5,4,2
+IT helpdesk ticket triage,Categorise and route incoming IT tickets and suggest fixes,3,3,4,4,4,2
+Predictive maintenance,Predict equipment failures from sensor data before they happen,4,4,2,3,2,2
+Customer credit scoring,Score new business customers for credit limits and payment terms,5,4,3,3,4,5
+Internal knowledge search,Let staff ask questions across policies and the intranet,3,3,2,4,2,2
+Marketing image generation,Generate social media images for marketing campaigns,2,1,3,4,1,3
