@@ -9,6 +9,7 @@ import pandas as pd
 import streamlit as st
 
 import assumptions as A
+from charts import quadrant_chart
 from logic import gated_cases, rank, top_cases
 
 HERE = Path(__file__).resolve().parent
@@ -91,6 +92,15 @@ else:
             st.metric(f"#{row['rank']} {row['name']}", f"{row['priority']:.2f}")
             st.markdown(f"**{row['quadrant']}**: {row['action']}")
             st.caption(f"Value {row['value']:.2f} · Feasibility {row['feasibility']:.2f}")
+
+# Quadrant chart.
+st.subheader("Value against feasibility")
+st.caption(
+    f"Dashed lines mark the quadrant cutoff of {A.QUADRANT_CUTOFF}. "
+    f"Red diamonds are gated (risk {A.RISK_GATE} or higher) and need governance first. "
+    "Hover a point for its scores."
+)
+st.altair_chart(quadrant_chart(ranked), width="stretch")
 
 # Full ranking. Kept narrow enough to fit a laptop screen; the working is
 # shown in full below, one step per line, instead of in a wide column.
