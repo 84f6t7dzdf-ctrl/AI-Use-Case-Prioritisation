@@ -143,3 +143,13 @@ def test_rank_with_custom_settings_and_change_note():
     defaults = {"value_weight": 0.6, "cutoff": 3.0, "risk_gate": 4, "capacity": 3}
     assert settings_changed(0.6, 3.0, 4, 3, defaults) == []
     assert settings_changed(0.6, 3.0, 3, 4, defaults) == ["risk_gate", "capacity"]
+
+
+def test_criterion_help_lists_1_3_5_meanings():
+    from assumptions import CRITERIA, SCORE_COLUMNS
+    from logic import criterion_help
+    for key in SCORE_COLUMNS:
+        text = criterion_help(key)
+        assert CRITERIA[key]["label"] in text
+        for level in (1, 3, 5):
+            assert f"**{level}:** {CRITERIA[key][level]}" in text
