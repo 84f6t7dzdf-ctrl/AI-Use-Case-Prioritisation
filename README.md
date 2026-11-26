@@ -38,10 +38,12 @@ Quadrants and their actions:
 | Fill-in | low | high | Do when spare capacity allows |
 | Deprioritise | low | low | Park and revisit next review |
 
-A sidebar slider sets the value weight from 0.3 to 0.8 (feasibility gets
-1 minus it). The ranking, chart and working all use the chosen weights, and
-a note lists any case that enters or leaves the top 3 compared with the
-default 0.6 / 0.4.
+The sidebar lets you change every assumption and see the results re-rank
+live: value weight (0.3 to 0.8, with feasibility as 1 minus it), quadrant
+cutoff, risk gate and capacity. Each control is marked as an estimate,
+starts at the default in `assumptions.py`, and **Reset to defaults** puts
+them all back. When anything differs from the defaults, a note lists the
+cases that enter or leave the top compared with the default top 3.
 
 A scatter chart plots every case by feasibility (x) and value (y), with
 dashed lines at the quadrant cutoff and the quadrant names in the corners.

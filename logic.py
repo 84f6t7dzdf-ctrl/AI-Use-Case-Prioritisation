@@ -44,6 +44,12 @@ def _fmt(x):
     return f"{float(x):g}"
 
 
+def _fmt_cutoff(x):
+    """Cutoff with at least one decimal place, e.g. 3.0 or 3.25."""
+    text = f"{float(x):g}"
+    return text if "." in text else f"{text}.0"
+
+
 def weights(value_weight=None):
     """Return (value_weight, feasibility_weight).
 
@@ -57,10 +63,12 @@ def weights(value_weight=None):
     return value_weight, round(1 - value_weight, 10)
 
 
-def score(case, value_weight=None):
+def score(case, value_weight=None, cutoff=None, risk_gate=None):
     """Score one use case (a dict or pandas Series of criterion scores).
 
     value_weight overrides VALUE_WEIGHT; feasibility then gets 1 minus it.
+    cutoff and risk_gate override QUADRANT_CUTOFF and RISK_GATE. None means
+    the default from assumptions.py.
     Returns a dict with value, feasibility, priority, quadrant, gated and
     working (a readable string showing each step).
     """
@@ -73,19 +81,21 @@ def score(case, value_weight=None):
     feasibility = mean(f_scores)
     v_w, f_w = weights(value_weight)
     priority = v_w * value + f_w * feasibility
-    quad = quadrant(value, feasibility)
-    gated = risk >= RISK_GATE
+    cutoff = QUADRANT_CUTOFF if cutoff is None else cutoff
+    risk_gate = RISK_GATE if risk_gate is None else risk_gate
+    quad = quadrant(value, feasibility, cutoff)
+    gated = risk >= risk_gate
 
-    v_cmp = ">=" if value >= QUADRANT_CUTOFF else "<"
-    f_cmp = ">=" if feasibility >= QUADRANT_CUTOFF else "<"
+    v_cmp = ">=" if value >= cutoff else "<"
+    f_cmp = ">=" if feasibility >= cutoff else "<"
     r_cmp = ">=" if gated else "<"
     working = (
         f"value = ({' + '.join(_fmt(s) for s in v_scores)}) / {len(v_scores)} = {value:.2f}; "
         f"feasibility = ({' + '.join(_fmt(s) for s in f_scores)}) / {len(f_scores)} = {feasibility:.2f}; "
         f"priority = {v_w:g} x {value:.2f} + {f_w:g} x {feasibility:.2f} = {priority:.2f}; "
-        f"quadrant = {quad} (value {value:.2f} {v_cmp} {QUADRANT_CUTOFF}, "
-        f"feasibility {feasibility:.2f} {f_cmp} {QUADRANT_CUTOFF}); "
-        f"risk {_fmt(risk)} {r_cmp} {RISK_GATE} -> {'gated' if gated else 'not gated'}"
+        f"quadrant = {quad} (value {value:.2f} {v_cmp} {_fmt_cutoff(cutoff)}, "
+        f"feasibility {feasibility:.2f} {f_cmp} {_fmt_cutoff(cutoff)}); "
+        f"risk {_fmt(risk)} {r_cmp} {_fmt(risk_gate)} -> {'gated' if gated else 'not gated'}"
     )
 
     return {
@@ -98,8 +108,11 @@ def score(case, value_weight=None):
     }
 
 
-def rank(df, value_weight=None):
+def rank(df, value_weight=None, cutoff=None, risk_gate=None):
     """Score every case and return them ranked.
+
+    value_weight, cutoff and risk_gate are passed to score(); None means the
+    default from assumptions.py.
 
     Ungated cases come first, by priority (highest first), then gated cases
     by priority. Ties keep the input order. Adds rank and action columns;
@@ -110,7 +123,7 @@ def rank(df, value_weight=None):
                                    "quadrant", "gated", "working", "action", "rank"]
         return pd.DataFrame(columns=cols)
 
-    scored = pd.DataFrame([score(row, value_weight) for _, row in df.iterrows()], index=df.index)
+    scored = pd.DataFrame([score(row, value_weight, cutoff, risk_gate) for _, row in df.iterrows()], index=df.index)
     out = pd.concat([df, scored], axis=1)
     out["action"] = [
         GOVERN_FIRST if g else ACTIONS[q] for g, q in zip(out["gated"], out["quadrant"])
@@ -142,3 +155,13 @@ def top_changes(default_top, new_top):
     entered = [n for n in new if n not in old]
     left = [n for n in old if n not in new]
     return entered, left
+
+
+def settings_changed(value_weight, cutoff, risk_gate, capacity, defaults):
+    """Names of the settings that differ from defaults.
+
+    defaults is a dict with keys value_weight, cutoff, risk_gate, capacity.
+    """
+    current = {"value_weight": value_weight, "cutoff": cutoff,
+               "risk_gate": risk_gate, "capacity": capacity}
+    return [k for k, v in current.items() if abs(float(v) - float(defaults[k])) > 1e-9]
