@@ -38,6 +38,10 @@ Quadrants and their actions:
 | Fill-in | low | high | Do when spare capacity allows |
 | Deprioritise | low | low | Park and revisit next review |
 
+A scatter chart plots every case by feasibility (x) and value (y), with
+dashed lines at the quadrant cutoff and the quadrant names in the corners.
+Gated cases are red diamonds; hover a point to see its scores.
+
 Gated cases get the action **Govern first** and are ranked after every
 ungated case, whatever their priority. The app recommends the top 3 ungated
 cases (the capacity).
@@ -54,6 +58,7 @@ to fit a laptop screen without scrolling sideways.
 - `use_cases.csv`: 12 example use cases for a mid-size company. The scores are
   illustrative; replace them with your own.
 - `logic.py`: pure scoring and ranking functions (no Streamlit).
+- `charts.py`: the quadrant scatter chart, built with Altair (no Streamlit).
 - `app.py`: the Streamlit interface. Load the default CSV or upload your own,
   edit scores in the table, and see the ranking update.
 - `tests/test_logic.py`: pytest tests for the scoring and ranking.
