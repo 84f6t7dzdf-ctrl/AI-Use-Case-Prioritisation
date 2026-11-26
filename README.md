@@ -67,7 +67,8 @@ to fit a laptop screen without scrolling sideways.
 - `logic.py`: pure scoring and ranking functions (no Streamlit).
 - `charts.py`: the quadrant scatter chart, built with Altair (no Streamlit).
 - `app.py`: the Streamlit interface. Load the default CSV or upload your own,
-  edit scores in the table, and see the ranking update.
+  edit scores in the table, and see the ranking update. Hover a score
+  column's heading to see what 1, 3 and 5 mean for that criterion.
 - `tests/test_logic.py`: pytest tests for the scoring and ranking.
 
 ## CSV format

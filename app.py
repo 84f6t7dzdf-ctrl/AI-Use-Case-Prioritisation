@@ -10,7 +10,7 @@ import streamlit as st
 
 import assumptions as A
 from charts import quadrant_chart
-from logic import gated_cases, rank, settings_changed, top_cases, top_changes
+from logic import criterion_help, gated_cases, rank, settings_changed, top_cases, top_changes
 
 HERE = Path(__file__).resolve().parent
 DEFAULT_CSV = HERE / "use_cases.csv"
@@ -97,11 +97,12 @@ if missing:
     st.stop()
 
 st.subheader("Use cases")
-st.caption("Edit scores directly in the table, or add and delete rows. The ranking updates as you go.")
+st.caption("Edit scores directly in the table, or add and delete rows. The ranking updates as you go. "
+           "Hover a score column's heading to see what 1, 3 and 5 mean.")
 score_cfg = {
     col: st.column_config.NumberColumn(
         A.CRITERIA[col]["short"], min_value=1, max_value=5, step=1,
-        help=f"{A.CRITERIA[col]['label']}. 1: {A.CRITERIA[col][1]} | 3: {A.CRITERIA[col][3]} | 5: {A.CRITERIA[col][5]}",
+        help=criterion_help(col),
     )
     for col in A.SCORE_COLUMNS
 }

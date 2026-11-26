@@ -6,6 +6,7 @@ import pandas as pd
 
 from assumptions import (
     ACTIONS,
+    CRITERIA,
     FEASIBILITY_CRITERIA,
     FEASIBILITY_WEIGHT,
     GOVERN_FIRST,
@@ -165,3 +166,15 @@ def settings_changed(value_weight, cutoff, risk_gate, capacity, defaults):
     current = {"value_weight": value_weight, "cutoff": cutoff,
                "risk_gate": risk_gate, "capacity": capacity}
     return [k for k, v in current.items() if abs(float(v) - float(defaults[k])) > 1e-9]
+
+
+def criterion_help(key):
+    """Help text for a score column: what 1, 3 and 5 mean (Markdown)."""
+    c = CRITERIA[key]
+    return (
+        f"**{c['label']}** ({c['group']})\n\n"
+        f"- **1:** {c[1]}\n"
+        f"- **3:** {c[3]}\n"
+        f"- **5:** {c[5]}\n\n"
+        "2 and 4 sit between. These meanings are estimates."
+    )
