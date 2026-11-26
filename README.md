@@ -42,8 +42,9 @@ Gated cases get the action **Govern first** and are ranked after every
 ungated case, whatever their priority. The app recommends the top 3 ungated
 cases (the capacity).
 
-Every row in the ranked table includes a `working` string that shows each
-step of the calculation, so anyone can check a result by hand.
+The app's Working section lists every step of the calculation for each case,
+one step per line, so anyone can check a result by hand. The tables are sized
+to fit a laptop screen without scrolling sideways.
 
 ## Files
 

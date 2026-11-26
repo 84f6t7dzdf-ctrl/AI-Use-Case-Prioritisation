@@ -10,6 +10,7 @@ leadership team before using the ranking to make decisions.
 CRITERIA = {
     "benefit": {
         "label": "Business benefit",
+        "short": "Benefit",
         "group": "value",
         1: "Small saving or nice to have",
         3: "Noticeable saving or revenue in one team",
@@ -17,6 +18,7 @@ CRITERIA = {
     },
     "strategic_fit": {
         "label": "Strategic fit",
+        "short": "Fit",
         "group": "value",
         1: "Not linked to any stated priority",
         3: "Supports a departmental goal",
@@ -24,6 +26,7 @@ CRITERIA = {
     },
     "data_readiness": {
         "label": "Data readiness",
+        "short": "Data",
         "group": "feasibility",
         1: "Data missing, scattered or poor quality",
         3: "Data exists but needs cleaning or joining",
@@ -31,6 +34,7 @@ CRITERIA = {
     },
     "tech_maturity": {
         "label": "Technology maturity",
+        "short": "Tech",
         "group": "feasibility",
         1: "Research-grade, unproven in production",
         3: "Proven elsewhere, needs custom build",
@@ -38,6 +42,7 @@ CRITERIA = {
     },
     "clear_owner": {
         "label": "Clear owner",
+        "short": "Owner",
         "group": "feasibility",
         1: "No one owns the process or outcome",
         3: "Owner named but has limited time",
@@ -45,6 +50,7 @@ CRITERIA = {
     },
     "risk": {
         "label": "Risk",
+        "short": "Risk",
         "group": "gate",
         1: "Low stakes, easy to reverse, no personal data",
         3: "Some customer impact or personal data",

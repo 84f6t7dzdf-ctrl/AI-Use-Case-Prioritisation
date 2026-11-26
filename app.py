@@ -46,8 +46,8 @@ st.subheader("Use cases")
 st.caption("Edit scores directly in the table, or add and delete rows. The ranking updates as you go.")
 score_cfg = {
     col: st.column_config.NumberColumn(
-        A.CRITERIA[col]["label"], min_value=1, max_value=5, step=1,
-        help=f"1: {A.CRITERIA[col][1]} | 3: {A.CRITERIA[col][3]} | 5: {A.CRITERIA[col][5]}",
+        A.CRITERIA[col]["short"], min_value=1, max_value=5, step=1,
+        help=f"{A.CRITERIA[col]['label']}. 1: {A.CRITERIA[col][1]} | 3: {A.CRITERIA[col][3]} | 5: {A.CRITERIA[col][5]}",
     )
     for col in A.SCORE_COLUMNS
 }
@@ -56,7 +56,11 @@ edited = st.data_editor(
     num_rows="dynamic",
     width="stretch",
     hide_index=True,
-    column_config={"name": st.column_config.TextColumn("Name", required=True), **score_cfg},
+    column_config={
+        "name": st.column_config.TextColumn("Name", required=True),
+        "description": st.column_config.TextColumn("Description", width="medium"),
+        **score_cfg,
+    },
     key=f"editor_{upload.name if upload else 'default'}",
 )
 
@@ -88,10 +92,10 @@ else:
             st.markdown(f"**{row['quadrant']}**: {row['action']}")
             st.caption(f"Value {row['value']:.2f} · Feasibility {row['feasibility']:.2f}")
 
-# Full ranking with the working.
+# Full ranking. Kept narrow enough to fit a laptop screen; the working is
+# shown in full below, one step per line, instead of in a wide column.
 st.subheader("Full ranking")
-display_cols = ["rank", "name", "value", "feasibility", "priority", "quadrant",
-                "risk", "gated", "action", "working"]
+display_cols = ["rank", "name", "value", "feasibility", "priority", "quadrant", "action"]
 st.dataframe(
     ranked[display_cols],
     width="stretch",
@@ -103,12 +107,16 @@ st.dataframe(
         "feasibility": st.column_config.NumberColumn("Feasibility", format="%.2f"),
         "priority": st.column_config.NumberColumn("Priority", format="%.2f"),
         "quadrant": "Quadrant",
-        "risk": "Risk",
-        "gated": "Gated",
         "action": "Action",
-        "working": st.column_config.TextColumn("Working", width="large"),
     },
 )
+
+st.subheader("Working")
+st.caption("How each score was worked out. Open a case to see every step.")
+for _, row in ranked.iterrows():
+    with st.expander(f"#{row['rank']} {row['name']}: priority {row['priority']:.2f}"):
+        steps = row["working"].split("; ")
+        st.markdown("\n".join(f"- {step}" for step in steps))
 
 # Gated cases.
 st.subheader("Govern first")
@@ -124,7 +132,14 @@ else:
         gated[["rank", "name", "priority", "quadrant", "risk", "action"]],
         width="stretch",
         hide_index=True,
-        column_config={"priority": st.column_config.NumberColumn("Priority", format="%.2f")},
+        column_config={
+            "rank": "Rank",
+            "name": "Name",
+            "priority": st.column_config.NumberColumn("Priority", format="%.2f"),
+            "quadrant": "Quadrant",
+            "risk": "Risk",
+            "action": "Action",
+        },
     )
 
 st.download_button(
