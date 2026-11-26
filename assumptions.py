@@ -76,6 +76,11 @@ QUADRANT_CUTOFF = 3.0
 # (legal, data protection, ethics review) before delivery can start.
 RISK_GATE = 4
 
+# ESTIMATE: range for the value weight slider in the app. Feasibility weight
+# is always 1 minus the value weight.
+VALUE_WEIGHT_MIN = 0.3
+VALUE_WEIGHT_MAX = 0.8
+
 # ESTIMATE: number of use cases the organisation can deliver at once.
 CAPACITY = 3
 

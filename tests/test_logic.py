@@ -82,3 +82,31 @@ def test_sample_csv_ranks():
     assert len(ranked) == 12
     assert set(ranked["quadrant"]) == {"Quick win", "Strategic bet", "Fill-in", "Deprioritise"}
     assert ranked["gated"].any()
+
+
+def test_custom_value_weight():
+    # value = 4.0, feasibility = 10/3; with value weight 0.3:
+    # priority = 0.3 * 4.0 + 0.7 * 10/3 = 1.2 + 2.3333 = 3.5333
+    s = score(case(benefit=4, strategic_fit=4, data_readiness=3,
+                   tech_maturity=4, clear_owner=3), value_weight=0.3)
+    assert s["priority"] == pytest.approx(3.5333, abs=1e-4)
+    assert "priority = 0.3 x 4.00 + 0.7 x 3.33 = 3.53" in s["working"]
+
+
+def test_value_weight_out_of_range():
+    with pytest.raises(ValueError):
+        score(case(), value_weight=1.5)
+
+
+def test_top_changes_with_sample_data():
+    from logic import top_cases, top_changes
+    df = pd.read_csv(Path(__file__).resolve().parent.parent / "use_cases.csv")
+    default_top = top_cases(rank(df), 3)
+    assert list(default_top["name"]) == [
+        "Invoice matching", "Demand forecasting", "Customer service chatbot"]
+    # Favouring feasibility swaps in two easier cases.
+    entered, left = top_changes(default_top, top_cases(rank(df, value_weight=0.3), 3))
+    assert entered == ["Sales email drafting", "IT helpdesk ticket triage"]
+    assert left == ["Demand forecasting", "Customer service chatbot"]
+    # Default weight gives no change.
+    assert top_changes(default_top, top_cases(rank(df, value_weight=0.6), 3)) == ([], [])
