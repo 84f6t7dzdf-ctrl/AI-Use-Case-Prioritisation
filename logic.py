@@ -178,3 +178,24 @@ def criterion_help(key):
         f"- **5:** {c[5]}\n\n"
         "2 and 4 sit between. These meanings are estimates."
     )
+
+
+def apply_adjustments(df, adjustments):
+    """Return a copy of df with each criterion shifted by its adjustment.
+
+    adjustments maps a criterion name to a number to add to every case.
+    Results are clipped to the 1 to 5 scale.
+    """
+    out = df.copy()
+    for col, delta in adjustments.items():
+        out[col] = (out[col] + delta).clip(lower=1, upper=5)
+    return out
+
+
+def describe_adjustments(adjustments):
+    """Plain-English summary, e.g. 'Data readiness -2 for every case'."""
+    parts = []
+    for col, delta in adjustments.items():
+        sign = "+" if delta > 0 else ""
+        parts.append(f"{CRITERIA[col]['label']} {sign}{delta:g}")
+    return ", ".join(parts) + " for every case (kept within 1 to 5)" if parts else ""

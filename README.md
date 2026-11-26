@@ -45,6 +45,13 @@ starts at the default in `assumptions.py`, and **Reset to defaults** puts
 them all back. When anything differs from the defaults, a note lists the
 cases that enter or leave the top compared with the default top 3.
 
+Example scenarios in the sidebar load a set of assumptions in one click:
+**Regulated bank** (risk gate 3, value weight 0.5, capacity 2),
+**Fast-growing retailer** (value weight 0.7, risk gate 5, capacity 4) and
+**Company with poor data** (data readiness lowered by 2 for every case).
+Each shows a short explanation, and you can still adjust the controls
+afterwards. The scenarios are defined in `assumptions.py` as estimates.
+
 A scatter chart plots every case by feasibility (x) and value (y), with
 dashed lines at the quadrant cutoff and the quadrant names in the corners.
 Gated cases are red diamonds; hover a point to see its scores.
